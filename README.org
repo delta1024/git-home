@@ -1,0 +1,7 @@
+#+TITLE: Git Home
+#+SUBTITLE: A dotfiles manager using git.
+
+* Abstract
+Git Home is a git extention to allow one to easaly manage there
+configuration files withouth needing to go through any symlinking or
+generating from third party apps.
