@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::GIT_HOME_DIR;
-use git2::{Error, Repository, StatusOptions, Signature, Tree};
+use git2::{Error, Object, Repository, Signature, StatusOptions, Tree};
 use std::{env, io, io::prelude::*, path::Path, process::exit};
 
 /// Returs the home repository
@@ -40,7 +40,7 @@ pub fn open_home_repo() -> io::Result<Repository> {
                 git_home_dir
             );
             print!("(y/n) ");
-	    io::stdout().flush()?;
+            io::stdout().flush()?;
             let mut buffer = String::new();
             io::stdin().read_line(&mut buffer)?;
             buffer.pop();
@@ -94,39 +94,111 @@ pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
     Ok(())
 }
 
-
+/// Returns required arguments for an initial commit
 pub fn gen_init_comimt_args(repo: &Repository) -> io::Result<(Signature<'static>, Tree)> {
-    
     let sig = match repo.signature() {
-	Ok(sig) => sig,
-	Err(_e) => {
-	    eprintln!("Unable to create a commit signiture.\n\
-		       Perhaps 'user.name' and 'user.email' are not set");
-	    exit(64);
-	}
+        Ok(sig) => sig,
+        Err(_e) => {
+            eprintln!(
+                "Unable to create a commit signiture.\n\
+		       Perhaps 'user.name' and 'user.email' are not set"
+            );
+            exit(64);
+        }
     };
     let mut index = match repo.index() {
-	Ok(index) => index,
-	Err(_e) => {
-	    eprintln!("Could not open repository index.");
-	    exit(64);
-	}
+        Ok(index) => index,
+        Err(_e) => {
+            eprintln!("Could not open repository index.");
+            exit(64);
+        }
     };
     let tree_id = match index.write_tree() {
-	Ok(id) => id,
-	Err(_e) => {
-	    eprintln!("Unable to write initial tree form index.");
-	    exit(74);
-	}
+        Ok(id) => id,
+        Err(_e) => {
+            eprintln!("Unable to write initial tree form index.");
+            exit(74);
+        }
     };
     let tree = match repo.find_tree(tree_id) {
-	Ok(id) => id,
-	Err(_e) => {
-	    eprintln!("Could not look up initial tree");
-	    exit(74);
-	}
+        Ok(id) => id,
+        Err(_e) => {
+            eprintln!("Could not look up initial tree");
+            exit(74);
+        }
     };
-    Ok (
-	(sig, tree)
-    )
+    Ok((sig, tree))
+}
+
+/** Returns required arguments for a regular commit
+```no_run
+#include "common.h"
+int lg2_commit(git_repository *repo, int argc, char **argv)
+{
+const char (opt = argv[1]);
+const char *comment = argv[2];
+int error;
+
+git_oid commit_oid,tree_oid;
+git_tree *tree;
+git_index *index;
+git_object *parent = NULL;
+git_reference *ref = NULL;
+git_signature *signature;
+
+/* Validate args */
+if (argc < 3 || strcmp(opt, "-m") != 0) {
+printf ("USAGE: %s -m <comment>\n", argv[0]);
+return -1;
+      }
+
+    error = git_revparse_ext(&parent, &ref, repo, "HEAD");
+    if (error == GIT_ENOTFOUND) {
+      printf("HEAD not found. Creating first commit\n");
+      error = 0;
+    } else if (error != 0) {
+      const git_error *err = git_error_last();
+      if (err) printf("ERROR %d: %s\n", err->klass, err->message);
+      else printf("ERROR %d: no detailed info\n", error);
+    }
+
+    check_lg2(git_repository_index(&index, repo), "Could not open repository index", NULL);
+    check_lg2(git_index_write_tree(&tree_oid, index), "Could not write tree", NULL);;
+    check_lg2(git_index_write(index), "Could not write index", NULL);;
+
+    check_lg2(git_tree_lookup(&tree, repo, &tree_oid), "Error looking up tree", NULL);
+
+    check_lg2(git_signature_default(&signature, repo), "Error creating signature", NULL);
+
+    check_lg2(git_commit_create_v(
+      &commit_oid,
+      repo,
+      "HEAD",
+      signature,
+      signature,
+      NULL,
+      comment,
+      tree,
+      parent ? 1 : 0, parent), "Error creating commit", NULL);
+
+      git_index_free(index);
+      git_signature_free(signature);
+      git_tree_free(tree);
+      git_object_free(parent);
+      git_reference_free(ref);
+
+      return error;
+}
+
+```
+**/
+pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'static>, Tree)> {
+    let (parent, _refrence) = match repo.revparse_ext("HEAD") {
+        Ok(result) => result,
+        Err(_e) => unreachable!(),
+    };
+
+    let (sig, tree) = gen_init_comimt_args(repo)?;
+
+    Ok((parent, sig, tree))
 }

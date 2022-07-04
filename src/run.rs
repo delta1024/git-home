@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{args::*, git_functions::*, GIT_HOME_DIR, print_commit_usage};
+use super::{args::*, git_functions::*, print_commit_usage, GIT_HOME_DIR};
 use git2::Repository;
 use std::{env, io, io::Write, path::Path, process::exit};
 
@@ -44,33 +44,67 @@ pub fn run_add(args: Args) -> io::Result<()> {
         }
     }
 
-    Ok(())       
+    Ok(())
 }
 
 /// Commits current index to HEAD.
 pub fn run_initial_commit(args: Args) -> io::Result<()> {
     let message: &str = match args.values {
-	Some(ref message) => &message[0],
-	None => {
-	    print_commit_usage();
-	    exit(64);
-	}
+        Some(ref message) => &message[0],
+        None => {
+            print_commit_usage();
+            exit(64);
+        }
     };
     let repo = match open_home_repo() {
-	Ok(repo) => repo,
-	Err(e) => {
-	    eprintln!("Unable to open repo: {}", e);
-	    exit(74);
-	}
+        Ok(repo) => repo,
+        Err(e) => {
+            eprintln!("Unable to open repo: {}", e);
+            exit(74);
+        }
     };
 
-    let (sig, tree) =  gen_init_comimt_args(&repo)?;
+    let (sig, tree) = gen_init_comimt_args(&repo)?;
     let _commit = match repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[]) {
-	Ok(id) => id,
-	Err(_err) => {
-	    eprintln!("Could not create commit");
-	    exit(74);
-	}
+        Ok(id) => id,
+        Err(_err) => {
+            eprintln!("Could not create commit");
+            exit(74);
+        }
+    };
+    Ok(())
+}
+
+pub fn run_commit(args: Args) -> io::Result<()> {
+    let message: &str = match args.values {
+        Some(ref message) => &message[0],
+        None => {
+            print_commit_usage();
+            exit(64);
+        }
+    };
+    let repo = match open_home_repo() {
+        Ok(repo) => repo,
+        Err(e) => {
+            eprintln!("Unable to open repo: {}", e);
+            exit(74);
+        }
+    };
+
+    let (parent, sig, tree) = gen_commit_args(&repo)?;
+    let parent = match parent.as_commit() {
+        Some(commit) => commit,
+        None => {
+            eprintln!("could not get parent commit");
+            exit(74);
+        }
+    };
+    let _commit = match repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent]) {
+        Ok(id) => id,
+        Err(_err) => {
+            eprintln!("Could not create commit");
+            exit(74);
+        }
     };
     Ok(())
 }
@@ -87,28 +121,26 @@ pub fn run_init() -> io::Result<()> {
     let git_dir = match env::var("GIT_HOME_DIR") {
         Ok(val) => val,
         Err(_e) => {
-	    println!(
-		"git home will create a repository at $HOME/{} by default.",
-		GIT_HOME_DIR
-	    );
-	    println!("You can change this behavior by seting the value of GIT_HOME_DIR in your shell startup file.");
-	    print!("continue? (y/n) ");
-	    io::stdout().flush()?;
-	    let mut input = String::new();
-	    io::stdin().read_line(&mut input)?;
-	    // Remove the '\n' at the end.
-	    input.pop();
-	    if input == "y" {
-		GIT_HOME_DIR.to_string()
-	    } else {
-		exit(0);
-	    }	    
-
-	}
+            println!(
+                "git home will create a repository at $HOME/{} by default.",
+                GIT_HOME_DIR
+            );
+            println!("You can change this behavior by seting the value of GIT_HOME_DIR in your shell startup file.");
+            print!("continue? (y/n) ");
+            io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            // Remove the '\n' at the end.
+            input.pop();
+            if input == "y" {
+                GIT_HOME_DIR.to_string()
+            } else {
+                exit(0);
+            }
+        }
     };
     let canonical_path = format!("{}/{}", home_dir, git_dir);
     let git_home_path = Path::new(&canonical_path);
-
 
     match Repository::init_bare(&git_home_path) {
         Ok(_) => Ok(()),
@@ -117,5 +149,4 @@ pub fn run_init() -> io::Result<()> {
             exit(74);
         }
     }
-
 }

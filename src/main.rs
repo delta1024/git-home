@@ -58,7 +58,15 @@ fn main() -> io::Result<()> {
             }
             Ok(())
         }
-	ProgMode::Commit => run_initial_commit(args),
+        ProgMode::Commit => {
+            let repo = open_home_repo()?;
+            let x = if let Ok(_) = repo.revparse_ext("HEAD") {
+                run_commit(args)
+            } else {
+                run_initial_commit(args)
+            };
+            x
+        }
         ProgMode::None => {
             print_usage()?;
             exit(64);

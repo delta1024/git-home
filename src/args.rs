@@ -113,14 +113,14 @@ pub fn format_args() -> Args {
     } else if &mode == "status" {
         args.mode = ProgMode::Status;
     } else if &mode == "commit" {
-	let arg_opts: Vec<String> = prog_args.collect();
-	if arg_opts.len() == 0 {
-	    args.values = None;
-	} else {
-	    let arg_opts: String = (&arg_opts[0]).into();
-	    args.values = Some(vec!{arg_opts});
-	}
-	args.mode = ProgMode::Commit;
+        let arg_opts: Vec<String> = prog_args.collect();
+        if arg_opts.len() == 0 {
+            args.values = None;
+        } else {
+            let arg_opts: String = (&arg_opts[0]).into();
+            args.values = Some(vec![arg_opts]);
+        }
+        args.mode = ProgMode::Commit;
     } else {
         args.mode = ProgMode::None;
     }

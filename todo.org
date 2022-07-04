@@ -2,10 +2,7 @@
 
 * Next
 
-** TODO Make commit function more robust so future commit's don't break
-
-*** Detect if there have been any previous commits on the current branch
-*branch execution accordingly*
+** TODO Fix bug in env based GIT_HOME_FOLDER location resolution
 
 * Todo
 
@@ -15,8 +12,6 @@
 
 ** TODO change README.org to README.md
 
-** TODO Fix bug in env based GIT_HOME_FOLDER location resolution
-
 * Done
 
 ** DONE add functionality to commit to head
@@ -24,4 +19,11 @@ CLOSED: [2022-07-04 Mon 11:59]
 
 *** DONE Find out how to get git signitures
 CLOSED: [2022-07-04 Mon 11:58]
+
+** DONE Make commit function more robust so future commit's don't break
+CLOSED: [2022-07-04 Mon 13:26]
+
+*** DONE Detect if there have been any previous commits on the current branch
+CLOSED: [2022-07-04 Mon 13:25]
+*branch execution accordingly*
 
