@@ -1,6 +1,6 @@
 [package]
 name = "git-home"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 description = "A dotfiles manager using git."
 license = "GPL-3.0-or-later"
