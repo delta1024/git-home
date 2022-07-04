@@ -26,6 +26,10 @@ use args::*;
 use git_functions::*;
 use run::*;
 
+fn print_commit_usage() {
+    println!("git home commit \"commit message\"");
+}
+
 fn print_add_help() {
     println!("git home add <file>");
 }
@@ -54,6 +58,7 @@ fn main() -> io::Result<()> {
             }
             Ok(())
         }
+	ProgMode::Commit => run_initial_commit(args),
         ProgMode::None => {
             print_usage()?;
             exit(64);

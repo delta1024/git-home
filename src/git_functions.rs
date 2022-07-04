@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::GIT_HOME_DIR;
-use git2::{Error, Repository, StatusOptions};
-use std::{env, io, path::Path, process::exit};
+use git2::{Error, Repository, StatusOptions, Signature, Tree};
+use std::{env, io, io::prelude::*, path::Path, process::exit};
 
 /// Returs the home repository
 pub fn open_home_repo() -> io::Result<Repository> {
@@ -40,6 +40,7 @@ pub fn open_home_repo() -> io::Result<Repository> {
                 git_home_dir
             );
             print!("(y/n) ");
+	    io::stdout().flush()?;
             let mut buffer = String::new();
             io::stdin().read_line(&mut buffer)?;
             buffer.pop();
@@ -91,4 +92,41 @@ pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
         )
     }
     Ok(())
+}
+
+
+pub fn gen_init_comimt_args(repo: &Repository) -> io::Result<(Signature<'static>, Tree)> {
+    
+    let sig = match repo.signature() {
+	Ok(sig) => sig,
+	Err(_e) => {
+	    eprintln!("Unable to create a commit signiture.\n\
+		       Perhaps 'user.name' and 'user.email' are not set");
+	    exit(64);
+	}
+    };
+    let mut index = match repo.index() {
+	Ok(index) => index,
+	Err(_e) => {
+	    eprintln!("Could not open repository index.");
+	    exit(64);
+	}
+    };
+    let tree_id = match index.write_tree() {
+	Ok(id) => id,
+	Err(_e) => {
+	    eprintln!("Unable to write initial tree form index.");
+	    exit(74);
+	}
+    };
+    let tree = match repo.find_tree(tree_id) {
+	Ok(id) => id,
+	Err(_e) => {
+	    eprintln!("Could not look up initial tree");
+	    exit(74);
+	}
+    };
+    Ok (
+	(sig, tree)
+    )
 }

@@ -24,6 +24,7 @@ pub enum ProgMode {
     Add,
     Init,
     Status,
+    Commit,
     None,
 }
 
@@ -37,7 +38,7 @@ impl Default for ProgMode {
 #[derive(Default, Debug)]
 pub struct Args {
     pub mode: ProgMode,
-    pub add_values: Option<Vec<String>>,
+    pub values: Option<Vec<String>>,
 }
 
 fn canonicalize_file_path<'a>(init_path: String) -> String {
@@ -102,7 +103,7 @@ pub fn format_args() -> Args {
             print_add_help();
             exit(64);
         }
-        args.add_values = Some(arg_opts);
+        args.values = Some(arg_opts);
     } else if &mode == "init" {
         args.mode = ProgMode::Init;
         if let Some(_val) = prog_args.next() {
@@ -111,6 +112,15 @@ pub fn format_args() -> Args {
         }
     } else if &mode == "status" {
         args.mode = ProgMode::Status;
+    } else if &mode == "commit" {
+	let arg_opts: Vec<String> = prog_args.collect();
+	if arg_opts.len() == 0 {
+	    args.values = None;
+	} else {
+	    let arg_opts: String = (&arg_opts[0]).into();
+	    args.values = Some(vec!{arg_opts});
+	}
+	args.mode = ProgMode::Commit;
     } else {
         args.mode = ProgMode::None;
     }

@@ -4,7 +4,6 @@ version = "0.0.3"
 edition = "2021"
 description = "A dotfiles manager using git."
 license = "GPL-3.0-or-later"
-license-file = "LICENSE"
 repository = "https://github.com/delta1024/git-home/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
