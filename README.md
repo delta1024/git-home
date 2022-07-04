@@ -13,12 +13,12 @@ generating from third party apps.
 	git home commit "commit message"
 
 #### Commands:
-	 -    add: add a file to the git_home repo.
-	 - status: print staus of files in the index.
-	 -   init: initialize a new home repo.
-	 - commit: commit current index to repository.
-	 - --help: prints program help.
+ -    add: add a file to the git_home repo.
+ - status: print staus of files in the index.
+ -   init: initialize a new home repo.
+ - commit: commit current index to repository.
+ - --help: prints program help.
 
 #### Global Variables:
-	- GIT_HOME_DIR: $HOME/.config/git_home (default value)
+- GIT_HOME_DIR: $HOME/.config/git_home (default value)
 
