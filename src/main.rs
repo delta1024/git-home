@@ -35,11 +35,27 @@ fn print_add_help() {
 }
 
 fn print_usage() -> io::Result<()> {
-    println!("git home [command]\n");
+    let git_dir = match resolve_git_repo() {
+        Ok(string) => string,
+        Err(_string) => format!("$HOME/{} (default value)", GIT_HOME_DIR),
+    };
+
+    println!("Usage:");
+    println!("\tgit home [command] <args>");
+    print!("\t");
+    print_add_help();
+    print!("\t");
+    print_commit_usage();
+    println!();
     println!("Commands:");
     println!("\t    add: add a file to the git_home repo.");
     println!("\t status: print staus of files in the index.");
     println!("\t   init: initialize a new home repo.");
+    println!("\t commit: commit current index to repository.");
+    println!("\t --help: prints this help dialog.");
+    println!();
+    println!("Global Variables:");
+    println!("\tGIT_HOME_DIR: {}", git_dir);
 
     Ok(())
 }
@@ -67,6 +83,7 @@ fn main() -> io::Result<()> {
             };
             x
         }
+        ProgMode::Help => print_usage(),
         ProgMode::None => {
             print_usage()?;
             exit(64);

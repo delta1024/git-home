@@ -25,6 +25,7 @@ pub enum ProgMode {
     Init,
     Status,
     Commit,
+    Help,
     None,
 }
 
@@ -121,6 +122,8 @@ pub fn format_args() -> Args {
             args.values = Some(vec![arg_opts]);
         }
         args.mode = ProgMode::Commit;
+    } else if &mode == "--help" {
+        args.mode = ProgMode::Help;
     } else {
         args.mode = ProgMode::None;
     }

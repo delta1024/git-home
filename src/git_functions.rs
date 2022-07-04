@@ -15,21 +15,38 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use super::GIT_HOME_DIR;
 use git2::{Error, Object, Repository, Signature, StatusOptions, Tree};
+use std::result;
 use std::{env, io, io::prelude::*, path::Path, process::exit};
+/// Gets the absolute path of the git_home_directory.
+/// Returns `Ok(path)` if GIT_HOME_DIR env variable is set else it returns `Err(path)` with the default value.
+pub fn resolve_git_repo() -> result::Result<String, String> {
+    if let Ok(dir) = std::env::var("GIT_HOME_DIR") {
+        Ok(dir)
+    } else {
+        let mut home_dir = if let Ok(home) = std::env::var("HOME") {
+            home
+        } else {
+            String::new()
+        };
+        if home_dir.len() != 0 {
+            home_dir.push('/');
+        }
+        Err(format!("{}{}", home_dir, GIT_HOME_DIR))
+    }
+}
 
 /// Returs the home repository
 pub fn open_home_repo() -> io::Result<Repository> {
-    let home_dir = match env::var("HOME") {
-        Ok(val) => val,
-        Err(e) => {
-            eprintln!("Couldn't get value of $HOME: {}", e);
-            exit(1);
-        }
+    let git_home_dir = match resolve_git_repo() {
+        Ok(string) | Err(string) => string,
     };
 
-    let git_home_dir = match env::var("GIT_HOME_DIR") {
-        Ok(val) => val,
-        Err(_e) => format!("{}/{}", home_dir, GIT_HOME_DIR),
+    let home_dir = match env::var("HOME") {
+        Ok(string) => string,
+        Err(_) => {
+            eprintln!("Could not get value of $HOME.");
+            exit(74);
+        }
     };
 
     let repo = match Repository::open_bare(&git_home_dir) {
@@ -101,7 +118,7 @@ pub fn gen_init_comimt_args(repo: &Repository) -> io::Result<(Signature<'static>
         Err(_e) => {
             eprintln!(
                 "Unable to create a commit signiture.\n\
-		       Perhaps 'user.name' and 'user.email' are not set"
+		 Perhaps 'user.name' and 'user.email' are not set"
             );
             exit(64);
         }

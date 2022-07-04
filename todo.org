@@ -2,15 +2,13 @@
 
 * Next
 
-** TODO Fix bug in env based GIT_HOME_FOLDER location resolution
+** TODO change README.org to README.md
 
 * Todo
 
 ** TODO add functionality to remove items from working index
 
 ** TODO add functionality to display past commits
-
-** TODO change README.org to README.md
 
 * Done
 
@@ -26,4 +24,7 @@ CLOSED: [2022-07-04 Mon 13:26]
 *** DONE Detect if there have been any previous commits on the current branch
 CLOSED: [2022-07-04 Mon 13:25]
 *branch execution accordingly*
+
+** DONE Fix bug in env based GIT_HOME_FOLDER location resolution
+CLOSED: [2022-07-04 Mon 14:27]
 
