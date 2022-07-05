@@ -19,52 +19,19 @@ use std::process::exit;
 const GIT_HOME_DIR: &str = ".config/git_home";
 
 mod args;
-mod git_functions;
+mod git;
 mod run;
 
 use args::*;
-use git_functions::*;
+use git::*;
 use run::*;
-
-fn print_commit_usage() {
-    println!("git home commit \"commit message\"");
-}
-
-fn print_add_help() {
-    println!("git home add <file>");
-}
-
-fn print_usage() -> io::Result<()> {
-    let git_dir = match resolve_git_repo() {
-        Ok(string) => string,
-        Err(_string) => format!("$HOME/{} (default value)", GIT_HOME_DIR),
-    };
-
-    println!("Usage:");
-    println!("\tgit home [command] <args>");
-    print!("\t");
-    print_add_help();
-    print!("\t");
-    print_commit_usage();
-    println!();
-    println!("Commands:");
-    println!("\t    add: add a file to the git_home repo.");
-    println!("\t status: print staus of files in the index.");
-    println!("\t   init: initialize a new home repo.");
-    println!("\t commit: commit current index to repository.");
-    println!("\t --help: prints this help dialog.");
-    println!();
-    println!("Global Variables:");
-    println!("\tGIT_HOME_DIR: {}", git_dir);
-
-    Ok(())
-}
+use args::usage::*;
 
 fn main() -> io::Result<()> {
     let args = format_args();
 
     match args.mode {
-        ProgMode::Add => run_add(args),
+        ProgMode::Add => run_add(args.values),
         ProgMode::Init => run_init(),
         ProgMode::Status => {
             let repo = open_home_repo()?;
@@ -74,15 +41,8 @@ fn main() -> io::Result<()> {
             }
             Ok(())
         }
-        ProgMode::Commit => {
-            let repo = open_home_repo()?;
-            let x = if let Ok(_) = repo.revparse_ext("HEAD") {
-                run_commit(args)
-            } else {
-                run_initial_commit(args)
-            };
-            x
-        }
+        ProgMode::Commit => run_commit(args.values),
+	ProgMode::Log => run_log(),
         ProgMode::Help => print_usage(),
         ProgMode::None => {
             print_usage()?;

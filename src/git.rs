@@ -13,11 +13,14 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use super::GIT_HOME_DIR;
 use git2::{Error, Object, Repository, Signature, StatusOptions, Tree};
 use std::result;
 use std::{env, io, io::prelude::*, path::Path, process::exit};
+
 /// Gets the absolute path of the git_home_directory.
+///
 /// Returns `Ok(path)` if GIT_HOME_DIR env variable is set else it returns `Err(path)` with the default value.
 pub fn resolve_git_repo() -> result::Result<String, String> {
     if let Ok(dir) = std::env::var("GIT_HOME_DIR") {
@@ -147,68 +150,6 @@ pub fn gen_init_comimt_args(repo: &Repository) -> io::Result<(Signature<'static>
     Ok((sig, tree))
 }
 
-/** Returns required arguments for a regular commit
-```no_run
-#include "common.h"
-int lg2_commit(git_repository *repo, int argc, char **argv)
-{
-const char (opt = argv[1]);
-const char *comment = argv[2];
-int error;
-
-git_oid commit_oid,tree_oid;
-git_tree *tree;
-git_index *index;
-git_object *parent = NULL;
-git_reference *ref = NULL;
-git_signature *signature;
-
-/* Validate args */
-if (argc < 3 || strcmp(opt, "-m") != 0) {
-printf ("USAGE: %s -m <comment>\n", argv[0]);
-return -1;
-      }
-
-    error = git_revparse_ext(&parent, &ref, repo, "HEAD");
-    if (error == GIT_ENOTFOUND) {
-      printf("HEAD not found. Creating first commit\n");
-      error = 0;
-    } else if (error != 0) {
-      const git_error *err = git_error_last();
-      if (err) printf("ERROR %d: %s\n", err->klass, err->message);
-      else printf("ERROR %d: no detailed info\n", error);
-    }
-
-    check_lg2(git_repository_index(&index, repo), "Could not open repository index", NULL);
-    check_lg2(git_index_write_tree(&tree_oid, index), "Could not write tree", NULL);;
-    check_lg2(git_index_write(index), "Could not write index", NULL);;
-
-    check_lg2(git_tree_lookup(&tree, repo, &tree_oid), "Error looking up tree", NULL);
-
-    check_lg2(git_signature_default(&signature, repo), "Error creating signature", NULL);
-
-    check_lg2(git_commit_create_v(
-      &commit_oid,
-      repo,
-      "HEAD",
-      signature,
-      signature,
-      NULL,
-      comment,
-      tree,
-      parent ? 1 : 0, parent), "Error creating commit", NULL);
-
-      git_index_free(index);
-      git_signature_free(signature);
-      git_tree_free(tree);
-      git_object_free(parent);
-      git_reference_free(ref);
-
-      return error;
-}
-
-```
-**/
 pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'static>, Tree)> {
     let (parent, _refrence) = match repo.revparse_ext("HEAD") {
         Ok(result) => result,

@@ -2,13 +2,13 @@
 
 * Next
 
-** TODO change README.org to README.md
+** TODO Add ~git home add -u~ support.
 
 * Todo
 
-** TODO add functionality to remove items from working index
+** TODO [#B] add functionality to remove items from working index
 
-** TODO add functionality to display past commits
+** TODO [#A] Add pretty printing to status output
 
 * Done
 
@@ -27,4 +27,22 @@ CLOSED: [2022-07-04 Mon 13:25]
 
 ** DONE Fix bug in env based GIT_HOME_FOLDER location resolution
 CLOSED: [2022-07-04 Mon 14:27]
+
+** DONE change README.org to README.md
+CLOSED: [2022-07-04 Mon 14:44]
+
+** DONE add functionality to display past commits
+CLOSED: [2022-07-04 Mon 18:24]
+
+*** DONE add frontend option to view past commits.
+CLOSED: [2022-07-04 Mon 16:21]
+
+*** DONE find out how to get past commites
+CLOSED: [2022-07-04 Mon 17:57]
+
+*** DONE brainstorm best way to display them.
+CLOSED: [2022-07-04 Mon 17:57]
+
+*** DONE finish formating output of ~git home log~.
+CLOSED: [2022-07-04 Mon 18:24]
 

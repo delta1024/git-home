@@ -1,6 +1,6 @@
 [package]
 name = "git-home"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 description = "A dotfiles manager using git."
 license = "GPL-3.0-or-later"
@@ -9,4 +9,5 @@ repository = "https://github.com/delta1024/git-home/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = "0.4"
 git2 = "0.14.4"

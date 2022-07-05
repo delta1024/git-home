@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{args::*, git_functions::*, print_commit_usage, GIT_HOME_DIR};
+use super::{args::*, git::*, print_commit_usage};
 use git2::Repository;
-use std::{env, io, io::Write, path::Path, process::exit};
-
+use std::{io, path::Path, process::exit};
+use chrono::{Local, Utc, TimeZone};
 /// Runs the program in add mode.
-pub fn run_add(args: Args) -> io::Result<()> {
+pub fn run_add(args: Vec<String>) -> io::Result<()> {
     let repo = open_home_repo()?;
     let mut index = match repo.index() {
         Ok(index) => index,
@@ -28,11 +28,7 @@ pub fn run_add(args: Args) -> io::Result<()> {
             exit(74);
         }
     };
-    let files: Vec<&Path> = match args.values {
-        Some(ref vec) => vec.iter().map(|x| Path::new(x)).collect(),
-        None => panic!("Expectred options"),
-    };
-
+    let files: Vec<&Path> = args.iter().map(|x| Path::new(x)).collect();
     for i in files {
         if let Err(e) = index.add_path(i) {
             eprintln!("index error: {}", e);
@@ -48,14 +44,14 @@ pub fn run_add(args: Args) -> io::Result<()> {
 }
 
 /// Commits current index to HEAD.
-pub fn run_initial_commit(args: Args) -> io::Result<()> {
-    let message: &str = match args.values {
-        Some(ref message) => &message[0],
-        None => {
-            print_commit_usage();
-            exit(64);
-        }
+pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
+    let message: &str = if args.len() != 0 {
+        &args[0]
+    } else {
+        print_commit_usage();
+        exit(64);
     };
+
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -75,14 +71,15 @@ pub fn run_initial_commit(args: Args) -> io::Result<()> {
     Ok(())
 }
 
-pub fn run_commit(args: Args) -> io::Result<()> {
-    let message: &str = match args.values {
-        Some(ref message) => &message[0],
-        None => {
-            print_commit_usage();
-            exit(64);
-        }
+pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
+
+    let message: &str = if args.len() != 0 {
+        &args[0]
+    } else {
+        print_commit_usage();
+        exit(64);
     };
+    
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -109,37 +106,64 @@ pub fn run_commit(args: Args) -> io::Result<()> {
     Ok(())
 }
 
+/// Runs the program in log mode
+pub fn run_log() -> io::Result<()> {
+    let repo = open_home_repo()?;
+    let head = match repo.head() {
+	Ok(head) => head,
+	Err(e) => {
+	    eprintln!("Unable to get HEAD: {e}");
+	    exit(74);
+	}
+    };
+    let commit = match head.peel_to_commit() {
+	Ok(commit) => commit,
+	Err(e) => {
+	    eprintln!("Unable to get commit from HEAD: {e}");
+	    exit(74);
+	}
+    };
+    let sha = commit.id();
+    let author = commit.author();
+    let time = {
+	let from = commit.time().seconds();
+	let utc_val = Local.timestamp(from, 0).to_string();
+	utc_val
+    };
+    let message = match commit.message() {
+	Some(message) => message,
+	None => "",
+    };
+    println!("commit {sha}");
+    println!("Author: {author}");
+    println!("Date: {time}");
+    println!();
+    println!("   {message}");
+    println!();
+    Ok(())
+}
+
+/// Runs the program in commit mode.
+pub fn run_commit(args: Vec<String>) -> io::Result<()> {
+    let repo = open_home_repo()?;
+    let args = CommitArgs::new(args);
+    match args.mode {
+	CommitMode::Commit => {
+	    let x = if let Ok(_) = repo.revparse_ext("HEAD") {
+		run_commit_action(&args.values)
+	    } else {
+		run_initial_commit(&args.values)
+	    };
+	    x	    
+	}
+    }
+}
+
 /// Initializes a new git home directory.
 pub fn run_init() -> io::Result<()> {
-    let home_dir = match env::var("HOME") {
-        Ok(val) => val,
-        Err(e) => {
-            eprintln!("Couldn't get $HOME value: {}", e);
-            exit(74);
-        }
+    let canonical_path = match resolve_git_repo() {
+	Ok(string) | Err(string) => string,
     };
-    let git_dir = match env::var("GIT_HOME_DIR") {
-        Ok(val) => val,
-        Err(_e) => {
-            println!(
-                "git home will create a repository at $HOME/{} by default.",
-                GIT_HOME_DIR
-            );
-            println!("You can change this behavior by seting the value of GIT_HOME_DIR in your shell startup file.");
-            print!("continue? (y/n) ");
-            io::stdout().flush()?;
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            // Remove the '\n' at the end.
-            input.pop();
-            if input == "y" {
-                GIT_HOME_DIR.to_string()
-            } else {
-                exit(0);
-            }
-        }
-    };
-    let canonical_path = format!("{}/{}", home_dir, git_dir);
     let git_home_path = Path::new(&canonical_path);
 
     match Repository::init_bare(&git_home_path) {
