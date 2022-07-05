@@ -8,11 +8,7 @@ pub fn print_commit_usage() {
     println!();
     println!("Options: ");
     println!("\t[-m | --message=]\"messagd\":");
-    println!("\t\t Commits index to working head with message."
-	     
-    )
-
-	
+    println!("\t\t Commits index to working head with message.")
 }
 
 pub fn print_add_help() {

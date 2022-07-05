@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// this is a test ocmment
 use std::io;
 use std::process::exit;
 const GIT_HOME_DIR: &str = ".config/git_home";
@@ -22,10 +23,10 @@ mod args;
 mod git;
 mod run;
 
+use args::usage::*;
 use args::*;
 use git::*;
 use run::*;
-use args::usage::*;
 
 fn main() -> io::Result<()> {
     let args = format_args();
@@ -42,7 +43,7 @@ fn main() -> io::Result<()> {
             Ok(())
         }
         ProgMode::Commit => run_commit(args.values),
-	ProgMode::Log => run_log(),
+        ProgMode::Log => run_log(),
         ProgMode::Help => print_usage(),
         ProgMode::None => {
             print_usage()?;

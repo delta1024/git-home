@@ -2,13 +2,15 @@
 
 * Next
 
-** TODO Add ~git home add -u~ support.
-
 * Todo
 
 ** TODO [#B] add functionality to remove items from working index
 
 ** TODO [#A] Add pretty printing to status output
+
+** TODO Refactor =format_args()= to use a match statement.
+
+** TODO update =run_commit()= output to include infromation about the newly created commit
 
 * Done
 
@@ -45,4 +47,10 @@ CLOSED: [2022-07-04 Mon 17:57]
 
 *** DONE finish formating output of ~git home log~.
 CLOSED: [2022-07-04 Mon 18:24]
+
+** DONE Add ~git home add -u~ support.
+CLOSED: [2022-07-04 Mon 22:28]
+*** DONE Pass paths of files to update from updated index
+CLOSED: [2022-07-04 Mon 22:28]
+
 

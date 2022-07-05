@@ -15,9 +15,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::{args::*, git::*, print_commit_usage};
-use git2::Repository;
+use chrono::{Local, TimeZone};
+use git2::{Repository, StatusOptions};
 use std::{io, path::Path, process::exit};
-use chrono::{Local, Utc, TimeZone};
 /// Runs the program in add mode.
 pub fn run_add(args: Vec<String>) -> io::Result<()> {
     let repo = open_home_repo()?;
@@ -28,17 +28,59 @@ pub fn run_add(args: Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-    let files: Vec<&Path> = args.iter().map(|x| Path::new(x)).collect();
-    for i in files {
-        if let Err(e) = index.add_path(i) {
-            eprintln!("index error: {}", e);
-            exit(74);
+    let args = AddArgs::new(args);
+    match args.mode {
+        AddMode::All => {
+            let mut files_to_update = Vec::new();
+            let mut options = StatusOptions::new();
+            options.include_untracked(false);
+            options.show(git2::StatusShow::Workdir);
+            let status = match repo.statuses(Some(&mut options)) {
+		Ok(status) => status,
+		Err(err) => {
+		    eprintln!("Could not get repo status: {}", err);
+		    exit(74);
+		}
+	    };
+            if status.len() > 0 {
+                for i in status.iter() {
+                    files_to_update.push(match i.path() {
+                        Some(path) => {
+			    let path = Path::new(path);
+			    if let Err(e) = index.add_path(path) {
+				eprintln!("index error: {}", e);
+				exit(74);
+			    }
+			 
+			}
+                        None => {
+                            eprintln!("Path is not valid utf-8");
+                            exit(1);
+                        }
+                    })
+                }
+		if let Err(e) = index.write() {
+		    eprintln!("could not write to index: {}", e);
+		    exit(74);
+		}
+            }
+
         }
-        if let Err(e) = index.write() {
-            eprintln!("could not write to index: {}", e);
-            exit(74);
+        AddMode::Normal => {
+            let files: Vec<&Path> = args.values.iter().map(|x| Path::new(x)).collect();
+            for i in files {
+                if let Err(e) = index.add_path(i) {
+                    eprintln!("index error: {}", e);
+                    exit(74);
+                }
+
+            }
+	    if let Err(e) = index.write() {
+                eprintln!("could not write to index: {}", e);
+                exit(74);
+            }
         }
-    }
+    };
 
     Ok(())
 }
@@ -72,14 +114,13 @@ pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
 }
 
 pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
-
     let message: &str = if args.len() != 0 {
         &args[0]
     } else {
         print_commit_usage();
         exit(64);
     };
-    
+
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -110,29 +151,29 @@ pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
 pub fn run_log() -> io::Result<()> {
     let repo = open_home_repo()?;
     let head = match repo.head() {
-	Ok(head) => head,
-	Err(e) => {
-	    eprintln!("Unable to get HEAD: {e}");
-	    exit(74);
-	}
+        Ok(head) => head,
+        Err(e) => {
+            eprintln!("Unable to get HEAD: {e}");
+            exit(74);
+        }
     };
     let commit = match head.peel_to_commit() {
-	Ok(commit) => commit,
-	Err(e) => {
-	    eprintln!("Unable to get commit from HEAD: {e}");
-	    exit(74);
-	}
+        Ok(commit) => commit,
+        Err(e) => {
+            eprintln!("Unable to get commit from HEAD: {e}");
+            exit(74);
+        }
     };
     let sha = commit.id();
     let author = commit.author();
     let time = {
-	let from = commit.time().seconds();
-	let utc_val = Local.timestamp(from, 0).to_string();
-	utc_val
+        let from = commit.time().seconds();
+        let utc_val = Local.timestamp(from, 0).to_string();
+        utc_val
     };
     let message = match commit.message() {
-	Some(message) => message,
-	None => "",
+        Some(message) => message,
+        None => "",
     };
     println!("commit {sha}");
     println!("Author: {author}");
@@ -148,21 +189,21 @@ pub fn run_commit(args: Vec<String>) -> io::Result<()> {
     let repo = open_home_repo()?;
     let args = CommitArgs::new(args);
     match args.mode {
-	CommitMode::Commit => {
-	    let x = if let Ok(_) = repo.revparse_ext("HEAD") {
-		run_commit_action(&args.values)
-	    } else {
-		run_initial_commit(&args.values)
-	    };
-	    x	    
-	}
+        CommitMode::Commit => {
+            let x = if let Ok(_) = repo.revparse_ext("HEAD") {
+                run_commit_action(&args.values)
+            } else {
+                run_initial_commit(&args.values)
+            };
+            x
+        }
     }
 }
 
 /// Initializes a new git home directory.
 pub fn run_init() -> io::Result<()> {
     let canonical_path = match resolve_git_repo() {
-	Ok(string) | Err(string) => string,
+        Ok(string) | Err(string) => string,
     };
     let git_home_path = Path::new(&canonical_path);
 

@@ -95,21 +95,50 @@ pub fn open_home_repo() -> io::Result<Repository> {
 
 /// Prints the satus of the home repo.
 pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
+    let mut up_to_date = true;
     let mut options = StatusOptions::new();
     options.include_untracked(false);
-    options.show(git2::StatusShow::IndexAndWorkdir);
+    options.show(git2::StatusShow::Workdir);
     let status = repo.statuses(Some(&mut options))?;
-    for i in status.iter() {
-        println!(
-            "{}",
-            match i.path() {
-                Some(path) => path,
-                None => {
-                    eprintln!("Path is not valid utf-8");
-                    exit(1);
+    if status.len() > 0 {
+        up_to_date = false;
+        println!("Files with untracked changes:\n\tYou can run 'git home add -u' to add them to the index'");
+        for i in status.iter() {
+            println!(
+                "\t{}",
+                match i.path() {
+                    Some(path) => path,
+                    None => {
+                        eprintln!("Path is not valid utf-8");
+                        exit(1);
+                    }
                 }
-            }
-        )
+            )
+        }
+    }
+
+    let mut options = StatusOptions::new();
+    options.include_untracked(false);
+    options.show(git2::StatusShow::Index);
+    let status = repo.statuses(Some(&mut options))?;
+    if status.len() > 0 {
+        up_to_date = false;
+        println!("Files with changes to be commited:");
+        for i in status.iter() {
+            println!(
+                "\t$HOME/{}",
+                match i.path() {
+                    Some(path) => path,
+                    None => {
+                        eprintln!("Path is not valid utf-8");
+                        exit(1);
+                    }
+                }
+            )
+        }
+    }
+    if up_to_date {
+        println!("Everything is upto date.");
     }
     Ok(())
 }
