@@ -19,8 +19,10 @@ use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::io;
 pub mod usage;
 use usage::{print_add_help, print_commit_usage};
+use crate::git::{gen_commit_template, strip_commit_template};
 #[derive(Debug, PartialEq)]
 pub enum AddMode {
     Normal,
@@ -68,16 +70,17 @@ pub struct CommitArgs {
 }
 
 impl CommitArgs {
-    pub fn new(args: Vec<String>) -> CommitArgs {
+    pub fn new(args: Vec<String>) -> io::Result<CommitArgs> {
         let mut args = args.iter();
         let temp_args = match args.next() {
             Some(val) => String::from(&*val),
             None => {
-                print_commit_usage();
-                exit(64);
+                let template = gen_commit_template();
+		strip_commit_template(edit::edit(template)?)
             }
         };
-        let mode;
+		
+	let mode;
         let values: Vec<String>;
         if temp_args.len() > 10 && &temp_args[0..9] == "--message" {
             let mut temp_args = temp_args.split('=');
@@ -88,11 +91,12 @@ impl CommitArgs {
             values = args.map(|x| String::from(x)).collect();
             mode = CommitMode::Commit;
         } else {
-            print_commit_usage();
-            exit(64);
+	    values = vec!{temp_args};
+            mode = CommitMode::Commit;
+
         };
 
-        CommitArgs { mode, values }
+        Ok(CommitArgs { mode, values })
     }
 }
 
@@ -101,7 +105,7 @@ impl CommitArgs {
 pub enum ProgMode {
     Add,
     Init,
-    Status,
+    Status(bool),
     Commit,
     Log,
     Help,
@@ -190,7 +194,11 @@ pub fn format_args() -> Args {
             exit(1);
         }
     } else if &temp_mode == "status" {
-        mode = ProgMode::Status;
+        let has_color = match env::var("COLORTERM") {
+            Ok(value) if value == "truecolor" || value == "24bit" => true,
+            _ => false,
+        };
+        mode = ProgMode::Status(has_color);
     } else if &temp_mode == "commit" {
         mode = ProgMode::Commit;
     } else if &temp_mode == "log" {

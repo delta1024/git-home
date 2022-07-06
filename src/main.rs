@@ -33,15 +33,8 @@ fn main() -> io::Result<()> {
 
     match args.mode {
         ProgMode::Add => run_add(args.values),
-        ProgMode::Init => run_init(),
-        ProgMode::Status => {
-            let repo = open_home_repo()?;
-            if let Err(e) = print_repo_status(&repo) {
-                eprintln!("git error: {}", e);
-                exit(74);
-            }
-            Ok(())
-        }
+        ProgMode::Init => run_init(),  
+        ProgMode::Status(color) => print_repo_status(color),
         ProgMode::Commit => run_commit(args.values),
         ProgMode::Log => run_log(),
         ProgMode::Help => print_usage(),

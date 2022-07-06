@@ -7,7 +7,7 @@ pub fn print_commit_usage() {
     println!("\tgit home commit <command>");
     println!();
     println!("Options: ");
-    println!("\t[-m | --message=]\"messagd\":");
+    println!("\t[-m | --message=]\"message\":");
     println!("\t\t Commits index to working head with message.")
 }
 

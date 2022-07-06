@@ -15,10 +15,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::GIT_HOME_DIR;
-use git2::{Error, Object, Repository, Signature, StatusOptions, Tree};
+use git2::{Object, Repository, Signature, StatusOptions, Tree};
 use std::result;
 use std::{env, io, io::prelude::*, path::Path, process::exit};
-
+const RED: &str = "\x1b[31m";
+const GREEN: &str = "\x1b[32m";
+const RESET: &str = "\x1b[0m";
 /// Gets the absolute path of the git_home_directory.
 ///
 /// Returns `Ok(path)` if GIT_HOME_DIR env variable is set else it returns `Err(path)` with the default value.
@@ -94,14 +96,24 @@ pub fn open_home_repo() -> io::Result<Repository> {
 }
 
 /// Prints the satus of the home repo.
-pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
+pub fn print_repo_status(has_color: bool) -> io::Result<()> {
+    let repo = open_home_repo()?;
     let mut up_to_date = true;
     let mut options = StatusOptions::new();
     options.include_untracked(false);
     options.show(git2::StatusShow::Workdir);
-    let status = repo.statuses(Some(&mut options))?;
+    let status = match repo.statuses(Some(&mut options)) {
+	Ok(status) => status,
+	Err(err) => {
+	    eprintln!("Could not get repo status: {}", err);
+	    exit(74);
+	}
+    };
     if status.len() > 0 {
         up_to_date = false;
+        if has_color {
+            print!("{RED}");
+        }
         println!("Files with untracked changes:\n\tYou can run 'git home add -u' to add them to the index'");
         for i in status.iter() {
             println!(
@@ -109,20 +121,35 @@ pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
                 match i.path() {
                     Some(path) => path,
                     None => {
+                        if has_color {
+                            print!("{RESET}");
+                        }
                         eprintln!("Path is not valid utf-8");
                         exit(1);
                     }
                 }
             )
         }
+        if has_color {
+            print!("{RESET}");
+        }
     }
 
     let mut options = StatusOptions::new();
     options.include_untracked(false);
     options.show(git2::StatusShow::Index);
-    let status = repo.statuses(Some(&mut options))?;
+    let status = match repo.statuses(Some(&mut options)) {
+	Ok(status) => status,
+	Err(err) => {
+	    eprintln!("Could not get repo status: {}", err);
+	    exit(74);
+	}
+    };
     if status.len() > 0 {
         up_to_date = false;
+        if has_color {
+            print!("{GREEN}");
+        }
         println!("Files with changes to be commited:");
         for i in status.iter() {
             println!(
@@ -130,13 +157,20 @@ pub fn print_repo_status(repo: &Repository) -> Result<(), Error> {
                 match i.path() {
                     Some(path) => path,
                     None => {
+                        if has_color {
+                            print!("{RESET}");
+                        }
                         eprintln!("Path is not valid utf-8");
                         exit(1);
                     }
                 }
             )
         }
+        if has_color {
+            print!("{RESET}");
+        }
     }
+
     if up_to_date {
         println!("Everything is upto date.");
     }
@@ -188,4 +222,38 @@ pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'stat
     let (sig, tree) = gen_init_comimt_args(repo)?;
 
     Ok((parent, sig, tree))
+}
+#[allow(rustdoc::invalid_rust_codeblocks)]
+/** 
+```no_run
+ Please enter the commit message for your changes. Lines starting
+ with '#' will be ignored, and an empty message aborts the commit.
+
+ On branch main
+ Your branch is up to date with 'origin/main'.
+
+ Changes to be committed:
+       modified:   ../../Cargo.lock
+       modified:   ../../Cargo.toml
+       modified:   mod.rs
+       modified:   usage.rs
+       modified:   ../git.rs
+       modified:   ../main.rs
+       modified:   ../run.rs
+       modified:   ../../todo.org
+
+```
+
+**/
+pub fn gen_commit_template() -> String {
+    String::from("
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Changes to be committed:")
+}
+
+pub fn strip_commit_template(string: String) -> String {
+    let return_val = string.lines().filter(|x| x.chars().nth(0) != Some('#')).collect();
+    return_val
 }

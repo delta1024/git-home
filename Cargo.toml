@@ -10,4 +10,5 @@ repository = "https://github.com/delta1024/git-home/"
 
 [dependencies]
 chrono = "0.4"
+edit = "0.1.4"
 git2 = "0.14.4"

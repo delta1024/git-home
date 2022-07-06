@@ -36,35 +36,33 @@ pub fn run_add(args: Vec<String>) -> io::Result<()> {
             options.include_untracked(false);
             options.show(git2::StatusShow::Workdir);
             let status = match repo.statuses(Some(&mut options)) {
-		Ok(status) => status,
-		Err(err) => {
-		    eprintln!("Could not get repo status: {}", err);
-		    exit(74);
-		}
-	    };
+                Ok(status) => status,
+                Err(err) => {
+                    eprintln!("Could not get repo status: {}", err);
+                    exit(74);
+                }
+            };
             if status.len() > 0 {
                 for i in status.iter() {
                     files_to_update.push(match i.path() {
                         Some(path) => {
-			    let path = Path::new(path);
-			    if let Err(e) = index.add_path(path) {
-				eprintln!("index error: {}", e);
-				exit(74);
-			    }
-			 
-			}
+                            let path = Path::new(path);
+                            if let Err(e) = index.add_path(path) {
+                                eprintln!("index error: {}", e);
+                                exit(74);
+                            }
+                        }
                         None => {
                             eprintln!("Path is not valid utf-8");
                             exit(1);
                         }
                     })
                 }
-		if let Err(e) = index.write() {
-		    eprintln!("could not write to index: {}", e);
-		    exit(74);
-		}
+                if let Err(e) = index.write() {
+                    eprintln!("could not write to index: {}", e);
+                    exit(74);
+                }
             }
-
         }
         AddMode::Normal => {
             let files: Vec<&Path> = args.values.iter().map(|x| Path::new(x)).collect();
@@ -73,9 +71,8 @@ pub fn run_add(args: Vec<String>) -> io::Result<()> {
                     eprintln!("index error: {}", e);
                     exit(74);
                 }
-
             }
-	    if let Err(e) = index.write() {
+            if let Err(e) = index.write() {
                 eprintln!("could not write to index: {}", e);
                 exit(74);
             }
@@ -87,13 +84,6 @@ pub fn run_add(args: Vec<String>) -> io::Result<()> {
 
 /// Commits current index to HEAD.
 pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
-    let message: &str = if args.len() != 0 {
-        &args[0]
-    } else {
-        print_commit_usage();
-        exit(64);
-    };
-
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -101,9 +91,11 @@ pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-
+    
+    let message: String = String::from(&args[0]);
+    
     let (sig, tree) = gen_init_comimt_args(&repo)?;
-    let _commit = match repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[]) {
+    let _commit = match repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &[]) {
         Ok(id) => id,
         Err(_err) => {
             eprintln!("Could not create commit");
@@ -112,15 +104,9 @@ pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
     };
     Ok(())
 }
-
 pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
-    let message: &str = if args.len() != 0 {
-        &args[0]
-    } else {
-        print_commit_usage();
-        exit(64);
-    };
 
+        
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -128,6 +114,7 @@ pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
+    let message: String = String::from(&args[0]);
 
     let (parent, sig, tree) = gen_commit_args(&repo)?;
     let parent = match parent.as_commit() {
@@ -137,7 +124,8 @@ pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-    let _commit = match repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent]) {
+    
+    let _commit = match repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &[&parent]) {
         Ok(id) => id,
         Err(_err) => {
             eprintln!("Could not create commit");
@@ -187,7 +175,7 @@ pub fn run_log() -> io::Result<()> {
 /// Runs the program in commit mode.
 pub fn run_commit(args: Vec<String>) -> io::Result<()> {
     let repo = open_home_repo()?;
-    let args = CommitArgs::new(args);
+    let args = CommitArgs::new(args)?;
     match args.mode {
         CommitMode::Commit => {
             let x = if let Ok(_) = repo.revparse_ext("HEAD") {
