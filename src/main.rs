@@ -29,15 +29,14 @@ use git::*;
 use run::*;
 
 fn main() -> io::Result<()> {
-    let args = format_args();
-
-    match args.mode {
-        ProgMode::Add => run_add(args.values),
-        ProgMode::Init => run_init(),  
+    match format_args()? {
+        ProgMode::Add(args) => run_add(args),
+        ProgMode::Init => run_init(),
         ProgMode::Status(color) => print_repo_status(color),
-        ProgMode::Commit => run_commit(args.values),
+        ProgMode::Commit(args) => run_commit(args.values),
         ProgMode::Log => run_log(),
         ProgMode::Help => print_usage(),
+	ProgMode::Passthrough(prefix_args, pass_throug_args) => run_passthrough(prefix_args, pass_throug_args),
         ProgMode::None => {
             print_usage()?;
             exit(64);

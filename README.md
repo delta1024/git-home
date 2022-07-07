@@ -8,17 +8,21 @@ generating from third party apps.
 
 ### Usage:
 	
-	git home [command] <args>
-	git home add <file>
-	git home commit <args>
+	git home [add <files> | status | init | commit <options> | 
+	          log | --help | -- <git-sub-command>]
 	
 ### Commands:
  - add: add a file to the git_home repo.
  - status: print staus of files in the index.
- - init: initialize a new home repo.
+ -   init: initialize a new home repo.
  - commit: commit current index to repository.
- - log: prints a log of the last commit.
+ -    log: prints a log of the last commit.
  - --help: prints this help dialog.
+ -     --: passes any commands following the double dashes to git. Any command preceding the double dash will be executed first.
 
+For example, to commit your changes and then see a log of your commit history you could run:
+	
+	git home commit -m \"some message\" -- status | less
+    
 ### Global Variables:
  - GIT_HOME_DIR: $HOME/.config/git_home (default value)

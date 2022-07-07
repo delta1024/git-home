@@ -23,9 +23,6 @@ pub fn print_usage() -> io::Result<()> {
 
     println!("Usage:");
     println!("\tgit home [command] <args>");
-    print!("\t");
-    print_add_help();
-    println!("\tgit home commit <args>");
     println!("Commands:");
     println!("\t    add: add a file to the git_home repo.");
     println!("\t status: print staus of files in the index.");
@@ -33,7 +30,15 @@ pub fn print_usage() -> io::Result<()> {
     println!("\t commit: commit current index to repository.");
     println!("\t    log: prints a log of the last commit.");
     println!("\t --help: prints this help dialog.");
+    println!("\t     --: passes any commands following the double dashes to git.");
+    println!("\t         any command preceding the double dash will be executed first.");
     println!();
+    println!("\t\t For example, to commit your changes and then see a log of");
+    println!("\t\t your commit history you could run:");
+    println!();
+    println!("\t\t\t git home commit -m \"some message\" -- status | less");
+    println!();
+    
     println!("Global Variables:");
     println!("\tGIT_HOME_DIR: {}", git_dir);
 

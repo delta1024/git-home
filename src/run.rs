@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{args::*, git::*, print_commit_usage};
+use super::{args::*, git::*, usage::*, GIT_HOME_DIR};
 use chrono::{Local, TimeZone};
 use git2::{Repository, StatusOptions};
-use std::{io, path::Path, process::exit};
+use crate::args::ProgMode;
+use std::boxed::Box;
+use std::{env, io::{self, Write, Read}, path::Path, process::{exit, Command, Stdio}};
 /// Runs the program in add mode.
-pub fn run_add(args: Vec<String>) -> io::Result<()> {
+pub fn run_add(args: AddArgs) -> io::Result<()> {
     let repo = open_home_repo()?;
     let mut index = match repo.index() {
         Ok(index) => index,
@@ -28,7 +30,7 @@ pub fn run_add(args: Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-    let args = AddArgs::new(args);
+
     match args.mode {
         AddMode::All => {
             let mut files_to_update = Vec::new();
@@ -91,9 +93,9 @@ pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-    
+
     let message: String = String::from(&args[0]);
-    
+
     let (sig, tree) = gen_init_comimt_args(&repo)?;
     let _commit = match repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &[]) {
         Ok(id) => id,
@@ -105,8 +107,6 @@ pub fn run_initial_commit(args: &Vec<String>) -> io::Result<()> {
     Ok(())
 }
 pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
-
-        
     let repo = match open_home_repo() {
         Ok(repo) => repo,
         Err(e) => {
@@ -124,7 +124,7 @@ pub fn run_commit_action(args: &Vec<String>) -> io::Result<()> {
             exit(74);
         }
     };
-    
+
     let _commit = match repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &[&parent]) {
         Ok(id) => id,
         Err(_err) => {
@@ -202,4 +202,55 @@ pub fn run_init() -> io::Result<()> {
             exit(74);
         }
     }
+}
+
+pub fn run_passthrough(prefix_args: Option<Box<ProgMode>>, args: Vec<String>) -> io::Result<()> {
+    if let Some(prefix_args) = prefix_args {
+	match *prefix_args {
+	    ProgMode::Add(args) => run_add(args)?,
+            ProgMode::Init => run_init()?,
+            ProgMode::Status(color) => print_repo_status(color)?,
+            ProgMode::Commit(args) => run_commit(args.values)?,
+            ProgMode::Log => run_log()?,
+            ProgMode::Help | ProgMode::Passthrough(_,_) => print_usage()?,
+	    ProgMode::None => (),
+	}
+    };
+    
+    let home_dir = env::var("HOME").unwrap_or_else(|err| {
+	eprintln!("unable to get value of $HOME: {}", err);
+	exit(74);
+    });
+    let git_dir = env::var("GIT_HOME_DIR").unwrap_or(GIT_HOME_DIR.to_string());
+
+    let mut git = Command::new("git")
+        .args(&[
+            "-C",
+	    &home_dir,
+            "--work-tree",
+            ".",
+            "--git-dir",
+	    &git_dir,
+            "-c",
+            "status.showUntrackedFiles=no",
+	    "--no-pager"
+        ])
+        .args(args)
+        .stdout(Stdio::inherit())
+        .spawn()
+        .expect("Could not spawn process.");
+    match git.wait() {
+	Ok(status) => match status.code() {
+	    Some(code) => exit(code),
+	    None => {
+		println!("Git terminated by signal");
+		exit(0)
+	    }
+	}
+	Err(err) => {
+	    eprintln!("{}", err);
+	    exit(74)
+	}
+    }
+
 }

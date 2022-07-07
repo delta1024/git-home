@@ -103,11 +103,11 @@ pub fn print_repo_status(has_color: bool) -> io::Result<()> {
     options.include_untracked(false);
     options.show(git2::StatusShow::Workdir);
     let status = match repo.statuses(Some(&mut options)) {
-	Ok(status) => status,
-	Err(err) => {
-	    eprintln!("Could not get repo status: {}", err);
-	    exit(74);
-	}
+        Ok(status) => status,
+        Err(err) => {
+            eprintln!("Could not get repo status: {}", err);
+            exit(74);
+        }
     };
     if status.len() > 0 {
         up_to_date = false;
@@ -139,11 +139,11 @@ pub fn print_repo_status(has_color: bool) -> io::Result<()> {
     options.include_untracked(false);
     options.show(git2::StatusShow::Index);
     let status = match repo.statuses(Some(&mut options)) {
-	Ok(status) => status,
-	Err(err) => {
-	    eprintln!("Could not get repo status: {}", err);
-	    exit(74);
-	}
+        Ok(status) => status,
+        Err(err) => {
+            eprintln!("Could not get repo status: {}", err);
+            exit(74);
+        }
     };
     if status.len() > 0 {
         up_to_date = false;
@@ -224,7 +224,7 @@ pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'stat
     Ok((parent, sig, tree))
 }
 #[allow(rustdoc::invalid_rust_codeblocks)]
-/** 
+/**
 ```no_run
  Please enter the commit message for your changes. Lines starting
  with '#' will be ignored, and an empty message aborts the commit.
@@ -246,14 +246,19 @@ pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'stat
 
 **/
 pub fn gen_commit_template() -> String {
-    String::from("
+    String::from(
+        "
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
-# Changes to be committed:")
+# Changes to be committed:",
+    )
 }
 
 pub fn strip_commit_template(string: String) -> String {
-    let return_val = string.lines().filter(|x| x.chars().nth(0) != Some('#')).collect();
+    let return_val = string
+        .lines()
+        .filter(|x| x.chars().nth(0) != Some('#'))
+        .collect();
     return_val
 }

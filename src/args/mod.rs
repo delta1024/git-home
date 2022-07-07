@@ -16,19 +16,21 @@
 
 use std::default::Default;
 use std::env;
+use std::env::Args;
 use std::fmt::Debug;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::io;
 pub mod usage;
-use usage::{print_add_help, print_commit_usage};
 use crate::git::{gen_commit_template, strip_commit_template};
+use usage::{print_add_help, print_commit_usage};
 #[derive(Debug, PartialEq)]
 pub enum AddMode {
     Normal,
     All,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AddArgs {
     pub mode: AddMode,
     pub values: Vec<String>,
@@ -63,7 +65,7 @@ pub enum CommitMode {
     Commit,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CommitArgs {
     pub mode: CommitMode,
     pub values: Vec<String>,
@@ -76,11 +78,11 @@ impl CommitArgs {
             Some(val) => String::from(&*val),
             None => {
                 let template = gen_commit_template();
-		strip_commit_template(edit::edit(template)?)
+                strip_commit_template(edit::edit(template)?)
             }
         };
-		
-	let mode;
+
+        let mode;
         let values: Vec<String>;
         if temp_args.len() > 10 && &temp_args[0..9] == "--message" {
             let mut temp_args = temp_args.split('=');
@@ -91,42 +93,30 @@ impl CommitArgs {
             values = args.map(|x| String::from(x)).collect();
             mode = CommitMode::Commit;
         } else {
-	    values = vec!{temp_args};
+            values = vec![temp_args];
             mode = CommitMode::Commit;
-
         };
 
         Ok(CommitArgs { mode, values })
     }
 }
 
-/// Specifies which mode the program will run in.
+/// Holds the program paramaters
 #[derive(Debug, PartialEq)]
 pub enum ProgMode {
-    Add,
+    Add(AddArgs),
     Init,
     Status(bool),
-    Commit,
+    Commit(CommitArgs),
     Log,
     Help,
     None,
+    Passthrough(Option<Box<ProgMode>>, Vec<String>)
 }
 
 impl Default for ProgMode {
     fn default() -> ProgMode {
         ProgMode::None
-    }
-}
-
-/// Holds the program paramaters.
-pub struct Args {
-    pub mode: ProgMode,
-    pub values: Vec<String>,
-}
-
-impl Args {
-    pub fn new(mode: ProgMode, values: Vec<String>) -> Args {
-        Args { mode, values }
     }
 }
 
@@ -172,53 +162,72 @@ fn canonicalize_file_path<'a>(init_path: &str) -> String {
         }
     }
 }
+fn scan_for_passthrough(args: Vec<String>) -> (Option<Vec<String>>, Vec<String>) {
+    let mut prog_args: Vec<String> = Vec::new();
+    let mut pass_args: Vec<String> = Vec::new();
+    let mut mode = None;
 
+    for i in args {
+	if let Some(()) = mode {
+	    pass_args.push(i);
+	} else {
+	    if i == "--" {
+		mode = Some(());
+	    } else {
+		prog_args.push(i);
+	    }
+	}
+    }
+
+    if pass_args.len() == 0 {
+	(None, prog_args)
+    } else {
+	(Some(pass_args), prog_args)
+    }
+}
 /// Returns the formated progam arguments
-pub fn format_args() -> Args {
-    let mode;
+pub fn format_args() -> io::Result<ProgMode> {
+    let mut mode = ProgMode::None;
     let mut prog_args = env::args();
     // Clear the binary location from the arguments iterator.
     prog_args.next();
 
+    let (passthroughp, prog_args) = scan_for_passthrough(prog_args.collect());
+    let mut prog_args = prog_args.iter();
     let temp_mode = match prog_args.next() {
         Some(mode) => mode,
-        None => "".to_string(),
+        None => "",
     };
 
-    if &temp_mode == "add" {
-        mode = ProgMode::Add;
-    } else if &temp_mode == "init" {
+    if temp_mode == "add" {
+        mode = ProgMode::Add(AddArgs::new(prog_args.map(|x| String::from(x)).collect()));
+    } else if temp_mode == "init" {
         mode = ProgMode::Init;
         if let Some(_val) = prog_args.next() {
             eprintln!("home init takes no args.");
             exit(1);
         }
-    } else if &temp_mode == "status" {
+    } else if temp_mode == "status" {
         let has_color = match env::var("COLORTERM") {
             Ok(value) if value == "truecolor" || value == "24bit" => true,
             _ => false,
         };
         mode = ProgMode::Status(has_color);
-    } else if &temp_mode == "commit" {
-        mode = ProgMode::Commit;
-    } else if &temp_mode == "log" {
+    } else if temp_mode == "commit" {
+        mode = ProgMode::Commit(CommitArgs::new(prog_args.map(|x| String::from(x)).collect())?);
+    } else if temp_mode == "log" {
         mode = ProgMode::Log;
-    } else if &temp_mode == "--help" {
+    } else if temp_mode == "--help" {
         mode = ProgMode::Help;
-    } else {
-        mode = ProgMode::None;
     }
+    if let Some(vec) = passthroughp {
+	if let ProgMode::None = mode {
+	    mode = ProgMode::Passthrough(None, vec)	    
+	} else {
+	    let prefix_mode = mode;
+	    mode = ProgMode::Passthrough(Some(Box::new(prefix_mode)), vec);
+	}
 
-    let values: Vec<String> = match mode {
-        ProgMode::Add => {
-            let arg_opts: Vec<String> = prog_args.collect();
-            if arg_opts.len() == 0 {
-                print_add_help();
-                exit(64);
-            }
-            arg_opts
-        }
-        _ => prog_args.collect(),
-    };
-    Args::new(mode, values)
+    }
+ Ok(mode)
 }
