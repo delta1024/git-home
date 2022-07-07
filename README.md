@@ -18,11 +18,11 @@ generating from third party apps.
  - commit: commit current index to repository.
  -    log: prints a log of the last commit.
  - --help: prints this help dialog.
- - --: passes any commands following the double dashes to git. Any command preceding the double dash will be executed first.
+ - -- : passes any commands following the double dashes to git. Any command preceding the double dash will be executed first.
 
 For example, to commit your changes and then see a log of your commit history you could run:
 	
-	git home commit -m \"some message\" -- status | less
+	git home commit -m "some message" -- status | less
     
 ### Global Variables:
  - GIT_HOME_DIR: $HOME/.config/git_home (default value)
