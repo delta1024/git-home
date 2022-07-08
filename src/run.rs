@@ -176,6 +176,10 @@ pub fn run_log() -> io::Result<()> {
 pub fn run_commit(args: Vec<String>) -> io::Result<()> {
     let repo = open_home_repo()?;
     let args = CommitArgs::new(args)?;
+    if args.values[0] == "" {
+	eprintln!("Commit aborted");
+	exit(1);
+    }
     match args.mode {
         CommitMode::Commit => {
             let x = if let Ok(_) = repo.revparse_ext("HEAD") {

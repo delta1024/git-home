@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
     match format_args()? {
         ProgMode::Add(args) => run_add(args),
         ProgMode::Init => run_init(),
-        ProgMode::Status(color) => print_repo_status(color),
+        ProgMode::Status(color) => print_repo_status(color),  
         ProgMode::Commit(args) => run_commit(args.values),
         ProgMode::Log => run_log(),
         ProgMode::Help => print_usage(),

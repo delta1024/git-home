@@ -223,36 +223,113 @@ pub fn gen_commit_args(repo: &Repository) -> io::Result<(Object, Signature<'stat
 
     Ok((parent, sig, tree))
 }
+
+
+fn gen_repo_string() -> io::Result<String> {
+
+    let repo = open_home_repo()?;
+    let mut output = String::new();
+
+    let mut options = StatusOptions::new();
+    options.include_untracked(false);
+    options.show(git2::StatusShow::Workdir);
+    let status = match repo.statuses(Some(&mut options)) {
+        Ok(status) => status,
+        Err(err) => {
+            eprintln!("Could not get repo status: {}", err);
+            exit(74);
+        }
+    };
+    if status.len() > 0 {
+            
+        output.push_str("# Files with untracked changes:\n\tYou can run 'git home add -u' to add them to the index:\n");
+        for i in status.iter() {
+
+            output.push_str(
+             &format!( "#\t{}",
+                match i.path() {
+                    Some(path) => path,
+                    None => {
+                        eprintln!("Path is not valid utf-8");
+                        exit(1);
+                    }
+                }
+             ));
+	    output.push('\n');
+        }
+    }
+    
+    
+
+    let mut options = StatusOptions::new();
+    options.include_untracked(false);
+    options.show(git2::StatusShow::Index);
+    let status = match repo.statuses(Some(&mut options)) {
+        Ok(status) => status,
+        Err(err) => {
+            eprintln!("Could not get repo status: {}", err);
+            exit(74);
+        }
+    };
+    if status.len() > 0 {
+        output.push_str("# Files with changes to be commited:\n");
+        for i in status.iter() {
+            output.push_str(&format!(
+                "#\t$HOME/{}",
+                match i.path() {
+                    Some(path) => path,
+                    None => {
+			
+                        eprintln!("Path is not valid utf-8");
+                        exit(1);
+                    }
+                }
+            ));
+	    output.push('\n');
+        }
+    }
+
+    Ok(output)
+}
+
+
 #[allow(rustdoc::invalid_rust_codeblocks)]
 /**
 ```no_run
- Please enter the commit message for your changes. Lines starting
- with '#' will be ignored, and an empty message aborts the commit.
+Please enter the commit message for your changes. Lines starting
+with '#' will be ignored, and an empty message aborts the commit.
 
- On branch main
- Your branch is up to date with 'origin/main'.
+On branch main
+Your branch is up to date with 'origin/main'.
 
- Changes to be committed:
-       modified:   ../../Cargo.lock
-       modified:   ../../Cargo.toml
-       modified:   mod.rs
-       modified:   usage.rs
-       modified:   ../git.rs
-       modified:   ../main.rs
-       modified:   ../run.rs
-       modified:   ../../todo.org
+Changes to be committed:
+modified:   ../../Cargo.lock
+modified:   ../../Cargo.toml
+modified:   mod.rs
+modified:   usage.rs
+modified:   ../git.rs
+modified:   ../main.rs
+modified:   ../run.rs
+modified:   ../../todo.org
 
 ```
 
-**/
+ **/
 pub fn gen_commit_template() -> String {
-    String::from(
+    let mut output =  String::from(
         "
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
-#
-# Changes to be committed:",
-    )
+#\n");
+    let extension = match gen_repo_string() {
+	Ok(string) => string,
+	Err(e) => {
+	    eprintln!("unable to generate repo status info: {}", e);
+	    exit(74);
+	}
+    };
+    output.push_str(&extension);
+    output
 }
 
 pub fn strip_commit_template(string: String) -> String {

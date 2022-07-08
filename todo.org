@@ -1,11 +1,9 @@
 #+TITLE: Tasks for git-home
 
 * Next
-** TODO add option ~--~ which will act as a wrapper for any git command passed to it.
+** TODO add functionality to remove items from working index
 
 * Todo
-
-** TODO add functionality to remove items from working index
 
 ** TODO Refactor =format_args()= to use a match statement.
 
@@ -13,7 +11,11 @@
 
 ** TODO add modified, deleted, or stashed status to output of =print_status()=
 
-** TODO add print_status() output to defualt git commit message
+** TODO add functionality to push to remote
+
+** TODO add functionality to add, remove,  and edit a remote location 
+
+** TODO add functionality to pull from remote
 
 * Done
 
@@ -63,4 +65,10 @@ CLOSED: [2022-07-05 Tue 18:40]
 
 ** DONE Add Editor as default option for commit
 CLOSED: [2022-07-05 Tue 19:43]
+
+** DONE add option ~--~ which will act as a wrapper for any git command passed to it.
+CLOSED: [2022-07-07 Thu 15:24]
+
+** DONE add print_status() output to defualt git commit message
+CLOSED: [2022-07-08 Fri 11:00]
 
